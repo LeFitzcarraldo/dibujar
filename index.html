@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawing App - Modern Dark</title>
+    <style>
+        /* --- CSS Starts --- */
+        :root {
+            /* Modern Dark Theme Colors */
+            --background-body: #1a1d21;       /* Very dark blue/gray */
+            --background-sidebar: #2a2d31;    /* Dark gray */
+            --background-canvas: #3a3d41;     /* Medium dark gray */
+            --background-button: transparent; /* Flat buttons */
+            --background-button-hover: #3f434a; /* Slightly lighter gray on hover */
+            --background-button-active: #4a4e55; /* Darker gray when pressed */
+            --background-tool-active: #3b82f6;  /* Blue highlight for active tool (example) */
+
+            --text-color-primary: #e1e1e1;     /* Light gray for text */
+            --text-color-secondary: #a1a1a1;   /* Medium gray for labels/icons */
+            --text-color-active: #ffffff;      /* White text for active elements */
+            --text-color-headings: #ffffff;    /* White for headings */
+
+            --border-color-light: #444;        /* Subtle border/divider */
+            --border-color-dark: #555;         /* Slightly lighter subtle border */
+
+            /* Action Colors (can be kept or adjusted) */
+            --color-pen-icon: #60a5fa;        /* Light Blue */
+            --color-pencil-icon: #9ca3af;     /* Gray */
+            --color-highlighter-icon: #facc15;/* Yellow */
+            --color-crayon-icon: #c084fc;     /* Purple */
+            --color-eraser-icon: #f87171;     /* Red */
+            --color-download-icon-hover: #4ade80; /* Green */
+            --color-clear-icon-hover: #fb7185; /* Pink/Red */
+
+            /* Animation Timing */
+            --transition-speed: 0.15s;
+            --transition-func: ease;
+        }
+
+        html, body {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+            background-color: var(--background-body);
+            color: var(--text-color-primary);
+        }
+
+        body {
+            display: flex;
+            flex-direction: row; /* Changed from column */
+        }
+
+        #sidebar {
+            width: 250px; /* Fixed width for the sidebar */
+            height: 100vh;
+            background-color: var(--background-sidebar);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color-light);
+            overflow-y: auto; /* Allow scrolling if content overflows */
+            flex-shrink: 0; /* Prevent sidebar from shrinking */
+        }
+
+        #main-content {
+            flex-grow: 1; /* Canvas takes remaining space */
+            display: flex; /* To make canvas fill the area */
+            background-color: var(--background-canvas); /* Background for the canvas area */
+        }
+
+        .controls {
+            padding: 16px; /* More padding */
+            display: flex;
+            flex-direction: column; /* Stack controls vertically */
+            gap: 12px; /* Space between control groups/elements */
+            user-select: none;
+        }
+
+        .controls h2 {
+            font-size: 1.1em;
+            color: var(--text-color-headings);
+            margin-bottom: 8px;
+            margin-top: 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color-light);
+        }
+
+        /* Grouping styles (optional, add divs in HTML if needed) */
+        .control-group {
+             display: flex;
+             flex-direction: column;
+             gap: 8px;
+             margin-bottom: 12px; /* Space below group */
+             padding-bottom: 12px; /* Space above divider */
+             border-bottom: 1px solid var(--border-color-light); /* Divider */
+        }
+        .control-group:last-child {
+            border-bottom: none; /* No divider after the last group */
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        label {
+            font-weight: 500; font-size: 0.8em; color: var(--text-color-secondary);
+            margin-bottom: 4px; /* Space below label */
+            text-transform: uppercase;
+        }
+
+        /* --- Button and Control Base Styles --- */
+        .control-element {
+            padding: 8px 12px; /* Slightly larger padding */
+            border-radius: 6px;
+            border: none; /* Remove default border */
+            cursor: pointer;
+            font-size: 0.9em; font-weight: 500;
+            background-color: var(--background-button); /* Transparent by default */
+            color: var(--text-color-primary); /* Light text */
+            transition: background-color var(--transition-speed) var(--transition-func),
+                        color var(--transition-speed) var(--transition-func),
+                        transform 0.05s ease-out;
+            line-height: 1.4;
+            display: flex; /* Use flex for alignment */
+            align-items: center;
+            gap: 8px; /* Space between icon and text */
+            text-align: left; /* Align text left */
+            width: 100%; /* Make buttons fill width */
+            box-sizing: border-box;
+        }
+        .control-element:hover {
+            background-color: var(--background-button-hover); /* Darker gray hover */
+        }
+        .control-element:active {
+            background-color: var(--background-button-active);
+            transform: scale(0.98); /* Slightly shrink on click */
+            transition-duration: 0.05s;
+        }
+
+        /* SVG Icon Styling */
+        .control-element svg {
+            width: 1.2em; height: 1.2em; /* Slightly larger icons */
+            fill: var(--text-color-secondary); /* Default icon color */
+            vertical-align: middle;
+            flex-shrink: 0; /* Prevent icon from shrinking */
+             transition: fill var(--transition-speed) var(--transition-func);
+        }
+         /* Icon colors for specific tools (optional visual cue) */
+        #penBtn svg { fill: var(--color-pen-icon); }
+        #pencilBtn svg { fill: var(--color-pencil-icon); }
+        #highlighterBtn svg { fill: var(--color-highlighter-icon); }
+        #crayonBtn svg { fill: var(--color-crayon-icon); }
+        #eraserBtn svg { fill: var(--color-eraser-icon); }
+
+
+        /* --- Active Tool Button Styling --- */
+        .tool-button.active-tool {
+            background-color: var(--background-tool-active); /* Highlight background */
+            color: var(--text-color-active); /* White text */
+            font-weight: 600; /* Bold text for active */
+        }
+        .tool-button.active-tool svg {
+            fill: var(--text-color-active); /* White icon */
+        }
+
+        /* --- Action Button Hover Effects (Icons mainly) --- */
+         #downloadBtn:hover svg { color: var(--color-download-icon-hover); fill: var(--color-download-icon-hover); }
+         #clearBtn:hover svg { color: var(--color-clear-icon-hover); fill: var(--color-clear-icon-hover); }
+         /* Keep text color consistent on hover for action buttons unless desired otherwise */
+         #downloadBtn:hover, #clearBtn:hover {
+             background-color: var(--background-button-hover); /* Standard hover */
+         }
+
+
+        /* --- Individual Control Styling --- */
+        select.control-element {
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a1a1a1%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); /* Changed fill color */
+            background-repeat: no-repeat; background-position: right 12px top 50%;
+            background-size: 10px auto;
+            padding-right: 35px; /* Ensure space for arrow */
+            background-color: var(--background-button-hover); /* Give select a slight background */
+        }
+        select.control-element:hover {
+             background-color: var(--background-button-active); /* Darken select on hover */
+        }
+
+
+        /* Color Picker Styling */
+        .color-picker-container { /* New wrapper for label and picker */
+            display: flex;
+            flex-direction: column; /* Stack label above picker */
+            gap: 4px;
+        }
+        .color-picker-wrapper {
+            padding: 4px; /* Padding around the color input */
+            border: 1px solid var(--border-color-light);
+            border-radius: 6px;
+            background-color: var(--background-button-hover); /* Match select background */
+            display: inline-flex; /* Keep it tight */
+            vertical-align: middle;
+            transition: border-color var(--transition-speed) var(--transition-func);
+             width: fit-content; /* Only as wide as needed */
+        }
+        .color-picker-wrapper:hover {
+            border-color: var(--border-color-dark);
+        }
+        input[type="color"] {
+            width: 40px; /* Make swatch bigger */
+            height: 28px;
+            border: none;
+            padding: 0;
+            border-radius: 4px;
+            cursor: pointer;
+            vertical-align: middle;
+            background-color: transparent; /* Remove default bg */
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper,
+        input[type="color"]::-moz-color-swatch-wrapper { padding: 0; border: none; border-radius: 4px; }
+        input[type="color"]::-webkit-color-swatch,
+        input[type="color"]::-moz-color-swatch { border: 1px solid var(--border-color-dark); border-radius: 4px; } /* Use theme border */
+        input[type="color"]::-moz-focus-inner { border: 0; padding: 0; }
+
+        /* Canvas Styling */
+        #drawingCanvas {
+            border: none;
+            background-color: #ffffff; /* Keep canvas background white unless preferred otherwise */
+            cursor: crosshair;
+            display: block;
+            width: 100%; /* Fill the main content area */
+            height: 100%; /* Fill the main content area */
+        }
+        /* --- CSS Ends --- */
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div class="controls">
+            <h2>Herramientas</h2>
+
+            <div class="control-group">
+                <button class="control-element tool-button" id="penBtn" title="Pluma">
+                    <svg viewBox="0 0 24 24"><path d="M18.41 5.8L17.2 4.59c-.78-.78-2.05-.78-2.83 0l-1.06 1.06L17.34 9.7l1.07-1.07c.78-.79.78-2.05 0-2.83M13.31 6.19L3 16.5V19.5h3L16.81 8.69z"/></svg>
+                    Pluma
+                </button>
+                <button class="control-element tool-button" id="pencilBtn" title="Lápiz">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    Lápiz
+                </button>
+                 <button class="control-element tool-button" id="highlighterBtn" title="Resaltador">
+                    <svg viewBox="0 0 24 24" fill-opacity="0.8"><path d="M19 20H5v-2.58l9.59-9.59L18 11.42 19 12.42V20zM17.74.86c-.49-.49-1.28-.49-1.77 0l-1.06 1.06 3.75 3.75 1.06-1.06c.49-.49.49-1.28 0-1.77l-1.98-1.98zM3 16.42l7.48-7.48 3.75 3.75L6.58 20H3v-3.58z"/></svg>
+                    Resaltador
+                </button>
+                <button class="control-element tool-button" id="crayonBtn" title="Crayón">
+                    <svg viewBox="0 0 24 24"><path d="M16.09 2.5L15.5.91C15.37.59 15.03.42 14.66.42 14.4 0.42 14.15 0.5 13.96 0.65L2.64 10.68c-.33.27-.54.68-.54 1.12v7.7c0 1.38 1.12 2.5 2.5 2.5h10c1.38 0 2.5-1.12 2.5-2.5v-7.7c0-.44-.21-.85-.54-1.12L10.04 1.85c-.19-.15-.44-.23-.71-.23-.37 0-.71.17-.84.49L7.91 4H16.1c.34 0 .66.17.85.44.19.27.24.61.14.93l-1 7c-.1.32-.37.53-.7.53H6.6l6.86-6.86c.33-.27.54-.68.54-1.12V4.02c0-.7-.39-1.33-.98-1.66L16.09 2.5z"/></svg>
+                    Crayón
+                </button>
+                <button class="control-element tool-button" id="eraserBtn" title="Borrador">
+                    <svg viewBox="0 0 24 24"><path d="M19.35 5.71 18.29 4.65c-.94-.94-2.46-.94-3.4 0l-1.38 1.38 4.07 4.07 1.38-1.38c.94-.94.94-2.46.01-3.4zm-4.04 4.04L5.12 19.95H3v-2.12l10.19-10.19z"/></svg>
+                    Borrador
+                </button>
+            </div>
+
+            <div class="control-group">
+                 <div class="color-picker-container">
+                     <label for="colorPicker">Color:</label>
+                     <div class="color-picker-wrapper">
+                         <input type="color" id="colorPicker" value="#FFFFFF" title="Seleccionar Color"> </div>
+                </div>
+
+                 <div> <label for="lineWidth">Grosor:</label>
+                    <select id="lineWidth" class="control-element" title="Seleccionar Grosor">
+                        <option value="1">1px</option> <option value="3">3px</option> <option value="5" selected>5px</option>
+                        <option value="8">8px</option> <option value="12">12px</option> <option value="20">20px</option>
+                        <option value="30">30px</option> <option value="40">40px</option>
+                    </select>
+                </div>
+            </div>
+
+             <div class="control-group">
+                <button class="control-element" id="clearBtn" title="Limpiar Lienzo">
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    Limpiar
+                </button>
+                <button class="control-element" id="downloadBtn" title="Descargar como PNG">
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    Descargar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <canvas id="drawingCanvas"></canvas>
+    </div>
+
+    <script>
+        // --- JavaScript Starts ---
+        window.addEventListener('load', () => {
+            // --- Element References ---
+            const sidebar = document.getElementById('sidebar'); // Get sidebar reference
+            const mainContent = document.getElementById('main-content'); // Get main content area reference
+            const canvas = document.getElementById('drawingCanvas');
+            if (!canvas || !canvas.getContext) { console.error("Canvas not supported."); return; }
+            const ctx = canvas.getContext('2d');
+            const controls = document.querySelector('.controls'); // Still useful for height calculation if needed, or remove if unused
+            const colorPicker = document.getElementById('colorPicker');
+            const lineWidthSelector = document.getElementById('lineWidth');
+            const clearBtn = document.getElementById('clearBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const toolButtons = document.querySelectorAll('.tool-button');
+
+            if (!sidebar || !mainContent || !colorPicker || !lineWidthSelector || !clearBtn || !downloadBtn || !toolButtons) {
+                 console.error("One or more essential UI elements are missing."); return;
+             }
+
+            // --- State Variables ---
+            let isDrawing = false; let lastX = 0; let lastY = 0;
+            // Start with white color in dark mode for visibility, or keep black if preferred
+            let currentTool = 'pen'; let currentDrawColor = colorPicker.value; let currentLineWidth = lineWidthSelector.value;
+
+            // --- Sound Setup (Keep as is, remember to replace URLs) ---
+            let soundsEnabled = true;
+            let clickSound = null;
+            let switchSound = null;
+            try {
+                // !!! REPLACE THESE URLs with links to your actual sound files !!!
+                // clickSound = new Audio('URL_TO_CLICK_SOUND.mp3');
+                // switchSound = new Audio('URL_TO_SWITCH_SOUND.mp3');
+                // clickSound.preload = 'auto';
+                // switchSound.preload = 'auto';
+                console.log("Audio objects created (placeholders).");
+            } catch (e) {
+                console.error("Error creating Audio objects. Sounds will be disabled.", e);
+                soundsEnabled = false;
+            }
+
+            function playSound(sound) {
+                if (soundsEnabled && sound && sound.play) {
+                    sound.currentTime = 0;
+                    sound.play().catch(e => console.warn("Audio play prevented:", e));
+                }
+            }
+            // --- End Sound Setup ---
+
+
+            // --- Canvas Setup & Resize ---
+            function resizeCanvas() {
+                // ***** IMPORTANT JS ADJUSTMENT NEEDED HERE *****
+                // The calculation needs to use the width of the sidebar now.
+                const sidebarWidth = sidebar.offsetWidth;
+                const availableWidth = window.innerWidth - sidebarWidth; // Use innerWidth and subtract sidebar
+                const availableHeight = window.innerHeight; // Height is likely just window height now
+
+                // No need to subtract border width if the body doesn't have one anymore
+                const safeWidth = availableWidth > 0 ? availableWidth : 1;
+                const safeHeight = availableHeight > 0 ? availableHeight : 1;
+
+
+                let currentDrawing = null;
+                if (canvas.width > 0 && canvas.height > 0) {
+                     try {
+                         currentDrawing = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                     } catch (e) {
+                          console.warn("Could not get image data before resize:", e);
+                         currentDrawing = null;
+                     }
+                 }
+
+                canvas.width = safeWidth;
+                canvas.height = safeHeight;
+
+                 // Set default background AFTER resize if you want it non-white
+                 // Example: fillCanvasBackground('#3a3d41'); // Match main content bg
+
+                if (currentDrawing) {
+                    ctx.putImageData(currentDrawing, 0, 0);
+                } else {
+                    // If no previous drawing (or couldn't save), fill with white (or desired default)
+                    fillCanvasBackground('#ffffff'); // Ensure a white background initially
+                }
+
+                applyToolProperties(); // Re-apply styles like color, width
+            }
+            // Function to set canvas background (call after resize and clear)
+            function fillCanvasBackground(color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Reset fillStyle if needed, or drawing functions should set their own strokeStyle
+                ctx.fillStyle = 'transparent'; // Avoid affecting future fills unintentionally
+            }
+
+            resizeCanvas(); // Initial resize
+
+
+            // --- Tool Properties Application --- (Adjusted for potential dark canvas)
+             function applyToolProperties() {
+                 ctx.globalAlpha = 1.0; ctx.globalCompositeOperation = 'source-over';
+                 ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+                 ctx.strokeStyle = currentDrawColor; // Use the selected color
+                 ctx.lineWidth = currentLineWidth;
+
+                 // Reset potential pencil/highlighter specifics before applying new ones
+                 // These defaults match the 'pen' tool
+
+                 switch(currentTool) {
+                     case 'pencil':
+                         ctx.lineWidth = Math.max(1, currentLineWidth / 3); // Make pencil thinner than selected width
+                         ctx.globalAlpha = 0.8; // Slightly transparent
+                         ctx.strokeStyle = currentDrawColor === '#ffffff' ? '#dddddd' : currentDrawColor; // Avoid pure white on white
+                         break;
+                     case 'highlighter':
+                         ctx.globalAlpha = 0.25; // More transparent highlighter
+                         ctx.lineCap = 'butt'; // Flat ends for highlighter
+                         // Ensure highlighter color is visible if canvas bg changes
+                         break;
+                     case 'crayon':
+                         ctx.globalAlpha = 0.6;
+                         ctx.lineWidth = currentLineWidth * 1.2; // Slightly thicker crayon
+                         break;
+                     case 'eraser':
+                         // Eraser needs to erase to the *canvas background color*
+                         // Using destination-out works well for a standard white canvas.
+                         // If the canvas background can change, this logic might need adjustment.
+                         ctx.globalCompositeOperation = 'destination-out';
+                          // Use a larger size for eraser for better feel
+                          ctx.lineWidth = Math.max(5, currentLineWidth * 1.5);
+                         break;
+                     case 'pen':
+                         // Defaults are already set (full opacity, round cap/join)
+                         break;
+                 }
+             }
+
+
+            // --- Tool Switching ---
+            function setActiveTool(newTool) {
+                if (currentTool === newTool) return;
+                currentTool = newTool;
+                toolButtons.forEach(button => {
+                    button.classList.toggle('active-tool', button.id === `${newTool}Btn`);
+                });
+                applyToolProperties();
+                playSound(switchSound);
+            }
+            setActiveTool('pen'); // Set initial tool
+
+            // --- Event Listeners ---
+            canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing); canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('touchstart', startDrawingTouch, { passive: false });
+            canvas.addEventListener('touchmove', drawTouch, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing); canvas.addEventListener('touchcancel', stopDrawing);
+
+            colorPicker.addEventListener('input', (e) => { // Use 'input' for live preview
+                 currentDrawColor = e.target.value;
+                 applyToolProperties(); // Apply potentially new color immediately
+             });
+             lineWidthSelector.addEventListener('change', (e) => {
+                 currentLineWidth = e.target.value;
+                 applyToolProperties();
+             });
+
+            clearBtn.addEventListener('click', () => { clearCanvas(); playSound(clickSound); });
+            downloadBtn.addEventListener('click', () => { downloadCanvasAsPNG(); playSound(clickSound); });
+
+            toolButtons.forEach(button => {
+                button.addEventListener('click', () => { setActiveTool(button.id.replace('Btn', '')); });
+            });
+            window.addEventListener('resize', resizeCanvas);
+
+            // --- Drawing Functions ---
+            function getMousePos(e) { return { x: e.offsetX, y: e.offsetY }; }
+            function getTouchPos(e) { e.preventDefault(); const r = canvas.getBoundingClientRect(); return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top }; }
+            function startDrawing(e) { isDrawing = true; const pos = getMousePos(e); handleStart(pos); }
+            function startDrawingTouch(e) { isDrawing = true; const pos = getTouchPos(e); handleStart(pos); }
+
+            function handleStart(pos) {
+                 applyToolProperties(); // Ensure tool properties are correct at the start
+                 ctx.beginPath();
+                 ctx.moveTo(pos.x, pos.y);
+                  // Draw a dot on click/tap if line width is > 1 (optional, good for feedback)
+                 if (ctx.lineWidth > 1 && currentTool !== 'eraser') { // Don't draw dot for eraser
+                     ctx.fillStyle = ctx.strokeStyle; // Use current stroke color for the dot
+                     ctx.fillRect(pos.x - ctx.lineWidth / 2, pos.y - ctx.lineWidth / 2, ctx.lineWidth, ctx.lineWidth);
+                     ctx.beginPath(); // Start a new path for the line segment
+                     ctx.moveTo(pos.x, pos.y); // Move back to start pos
+                 }
+                 [lastX, lastY] = [pos.x, pos.y];
+             }
+
+
+            function draw(e) { if (!isDrawing) return; const pos = getMousePos(e); drawSegment(pos.x, pos.y); }
+            function drawTouch(e) { if (!isDrawing) return; const pos = getTouchPos(e); drawSegment(pos.x, pos.y); }
+            function drawSegment(curX, curY) {
+                ctx.lineTo(curX, curY);
+                ctx.stroke();
+                // For smoother lines, re-start path segment
+                ctx.beginPath();
+                ctx.moveTo(curX, curY);
+                [lastX, lastY] = [curX, curY];
+            }
+            function stopDrawing() {
+                if (!isDrawing) return;
+                 ctx.beginPath(); // End the current path segment to prevent artifacts
+                isDrawing = false;
+            }
+            function clearCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                 fillCanvasBackground('#ffffff'); // Re-apply white background after clearing
+             }
+
+            // --- Download Function --- (Make sure background is filled)
+            function downloadCanvasAsPNG() {
+                try {
+                    const link = document.createElement('a');
+                    link.download = 'dibujo_moderno.png';
+
+                    // Create a temporary canvas to composite the drawing onto a white background
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+
+                    // Fill the temporary canvas with white background
+                    tempCtx.fillStyle = '#ffffff'; // Ensure white background for PNG
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                    // Draw the current canvas content onto the temporary one
+                    tempCtx.drawImage(canvas, 0, 0);
+
+                    // Get data URL from the temporary canvas
+                    link.href = tempCanvas.toDataURL('image/png');
+                    link.click();
+                    link.remove(); // Clean up the link element
+                } catch (e) {
+                    console.error("Error downloading canvas:", e);
+                    alert("Hubo un error al intentar descargar el dibujo.");
+                }
+            }
+
+        }); // End of window.load listener
+        // --- JavaScript Ends ---
+    </script>
+</body>
+</html>
